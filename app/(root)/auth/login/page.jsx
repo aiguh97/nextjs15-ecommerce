@@ -7,6 +7,7 @@ import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { authSchema } from "@/lib/zodSchema";
+import Link from "next/link";
 import {
   Form,
   FormControl,
@@ -25,7 +26,7 @@ const LoginPage = () => {
   const [isTypePassword, setIsTypePassword] = useState(true);
 
   const formSchema = authSchema.pick({ email: true }).extend({
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z.string().min(1, "Password wajib diisi").min(8, "Password minimal 8 karakter"),
   });
 
   const form = useForm({
@@ -89,16 +90,20 @@ const LoginPage = () => {
             <FormField
               control={form.control}
               name="password"
-              render={({ field }) => (
+              render={({ field,fieldState }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
 
-                  <FormControl>
+                  <FormControl >
                     <div className="relative">
                       <Input
                         type={isTypePassword ? "password" : "text"}
                         placeholder="••••••••"
-                        className="pr-10"
+                           className={`pr-10 ${
+              fieldState.error
+                ? "border-destructive focus-visible:ring-destructive"
+                : ""
+            }`}
                         {...field}
                       />
                       <button
@@ -116,13 +121,26 @@ const LoginPage = () => {
               )}
             />
 
+             <div className="flex justify-end">
+                <Link href="/auth/forgot-password" className="text-primary underline">Forgot Password?</Link>
+              </div>
+
             {/* Button */}
-            <ButtonLoading
+           <div className="mb-3">
+             <ButtonLoading
               type="submit"
               text="Login"
               loading={loading}
               className="w-full"
             />
+           </div>
+           <div className="text-center">
+              <div className="flex justify-center items-center gap-3">
+                <p>Don't have account?</p>
+                <Link href="/auth/register" className="text-primary underline">Create account!</Link>
+              </div>
+             
+           </div>
           </form>
         </Form>
       </CardContent>
