@@ -20,28 +20,28 @@ import { Input } from "@/components/ui/input";
 import ButtonLoading from "@/components/Application/ButtonLoading";
 import z from "zod";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
-import { WEBSITE_REGISTER } from "@/routes/WebsiteRoute";
+import { WEBSITE_LOGIN, WEBSITE_REGISTER } from "@/routes/WebsiteRoute";
 
-const LoginPage = () => {
+const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [isTypePassword, setIsTypePassword] = useState(true);
 
-  const formSchema = authSchema.pick({ email: true }).extend({
-    password: z
-      .string()
-      .min(1, "Password wajib diisi")
-      .min(8, "Password minimal 8 karakter"),
-  });
+  const formSchema = authSchema.pick({fullname:true,username:true, email: true,password:true }).extend({
+   confirmPassword: z.string()
+  }).refine((data)=>data.password === data.confirmPassword,{message:"Password tidak cocok",path:['confirmPassword']});
 
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
+    fullname:"",
+      username: "",
       email: "",
       password: "",
+      confirmPassword: ""
     },
   });
 
-  const handleLoginSubmit = async () => {};
+  const handleRegisterSubmit = async () => {};
 
   return (
     <Card className="w-[400px]">
@@ -59,18 +59,56 @@ const LoginPage = () => {
 
         {/* Title */}
         <div className="text-center space-y-1">
-          <h1 className="text-2xl font-semibold">Login Into Account</h1>
+          <h1 className="text-2xl font-semibold">Create Account</h1>
           <p className="text-sm text-muted-foreground">
-            Login into your account by filling out the form below
+            Create new account by filling out the form bellow
           </p>
         </div>
 
         {/* Form */}
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(handleLoginSubmit)}
+            onSubmit={form.handleSubmit(handleRegisterSubmit)}
             className="space-y-5"
           >
+             {/* Full Name */}
+                <FormField
+                control={form.control}
+              name="fullname"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nama Lengkap</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder="John Doe"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+  {/* Username */}
+                <FormField
+                control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder="john_doe"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Email */}
             <FormField
               control={form.control}
@@ -125,29 +163,57 @@ const LoginPage = () => {
               )}
             />
 
-            <div className="flex justify-end">
-              <Link
-                href="/auth/forgot-password"
-                className="text-primary underline"
-              >
-                Forgot Password?
-              </Link>
-            </div>
+             {/*Confirm Password */}
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field, fieldState }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        type={isTypePassword ? "password" : "text"}
+                        placeholder="••••••••"
+                        className={`pr-10 ${
+                          fieldState.error
+                            ? "border-destructive focus-visible:ring-destructive"
+                            : ""
+                        }`}
+                        {...field}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsTypePassword(!isTypePassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      >
+                        {isTypePassword ? <FaRegEyeSlash /> : <FaRegEye />}
+                      </button>
+                    </div>
+                  </FormControl>
+
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+          
 
             {/* Button */}
             <div className="mb-3">
               <ButtonLoading
                 type="submit"
-                text="Login"
+                text="Create Account"
                 loading={loading}
                 className="w-full"
               />
             </div>
             <div className="text-center">
               <div className="flex justify-center items-center gap-3">
-                <p>Don't have account?</p>
-                <Link href={WEBSITE_REGISTER} className="text-primary underline">
-                  Create account!
+                <p>Al'ready have account?</p>
+                <Link href={WEBSITE_LOGIN} className="text-primary underline">
+                  Login
                 </Link>
               </div>
             </div>
@@ -158,4 +224,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;
