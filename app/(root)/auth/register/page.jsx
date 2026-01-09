@@ -21,6 +21,7 @@ import ButtonLoading from "@/components/Application/ButtonLoading";
 import z from "zod";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { WEBSITE_LOGIN, WEBSITE_REGISTER } from "@/routes/WebsiteRoute";
+import axios from "axios";
 
 const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
@@ -41,7 +42,21 @@ const RegisterPage = () => {
     },
   });
 
-  const handleRegisterSubmit = async () => {};
+  const handleRegisterSubmit = async (values) => {
+    try {
+      setLoading(true);
+      const {data:registerResponse} = await axios.post('/api/auth/register',values);
+      if(!registerResponse.success){
+        throw new Error(registerResponse.message || "Something went wrong");
+      }
+      form.reset();
+      throw new Error(registerResponse.message || "Something went wrong 2");
+    } catch (error) {
+      alert(error.message || "Something went wrong");
+    }finally{
+      setLoading(false);
+    }
+  };
 
   return (
     <Card className="w-[400px]">
@@ -139,6 +154,7 @@ const RegisterPage = () => {
                   <FormControl>
                     <div className="relative">
                       <Input
+                   
                         type={isTypePassword ? "password" : "text"}
                         placeholder="••••••••"
                         className={`pr-10 ${
