@@ -21,10 +21,15 @@ import ButtonLoading from "@/components/Application/ButtonLoading";
 import z from "zod";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { WEBSITE_REGISTER } from "@/routes/WebsiteRoute";
+import axios from "axios";
+import { showToast } from "@/lib/showToast";
+import OTPVerification from "@/components/Application/OTPVerification";
 
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
+  const [otpVerificationLoading, setOtpVerificationLoading] = useState(false);
   const [isTypePassword, setIsTypePassword] = useState(true);
+  const [otpEmail, setOTPEmail] = useState("");
 
   const formSchema = authSchema.pick({ email: true }).extend({
     password: z
@@ -41,7 +46,50 @@ const LoginPage = () => {
     },
   });
 
-  const handleLoginSubmit = async () => {};
+  const handleLoginSubmit = async (values) => {
+    try {
+      setLoading(true);
+
+      const { data: registerResponse } = await axios.post(
+        "/api/auth/login",
+        values
+      );
+
+      if (!registerResponse.success) {
+        throw new Error(registerResponse.message || "Something went wrong");
+      }
+
+      setOTPEmail(values.email);
+      form.reset();
+      showToast("success", registerResponse.message);
+    } catch (error) {
+      showToast("error", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOTPVerification = async (values) => {
+  try {
+      setOtpVerificationLoading(true);
+
+      const { data: registerResponse } = await axios.post(
+        "/api/auth/verify-otp",
+        values
+      );
+
+      if (!registerResponse.success) {
+        throw new Error(registerResponse.message || "Something went wrong");
+      }
+
+      setOTPEmail('');
+      showToast("success", registerResponse.message);
+    } catch (error) {
+      showToast("error", error.message);
+    } finally {
+      setOtpVerificationLoading(false);
+    }
+  }
 
   return (
     <Card className="w-[400px]">
@@ -57,102 +105,112 @@ const LoginPage = () => {
           />
         </div>
 
-        {/* Title */}
-        <div className="text-center space-y-1">
-          <h1 className="text-2xl font-semibold">Login Into Account</h1>
-          <p className="text-sm text-muted-foreground">
-            Login into your account by filling out the form below
-          </p>
-        </div>
+        {!otpEmail ? (
+          <>
+            {/* Title */}
+            <div className="text-center space-y-1">
+              <h1 className="text-2xl font-semibold">Login Into Account</h1>
+              <p className="text-sm text-muted-foreground">
+                Login into your account by filling out the form below
+              </p>
+            </div>
 
-        {/* Form */}
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleLoginSubmit)}
-            className="space-y-5"
-          >
-            {/* Email */}
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="example@gmail.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Password */}
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type={isTypePassword ? "password" : "text"}
-                        placeholder="••••••••"
-                        className={`pr-10 ${
-                          fieldState.error
-                            ? "border-destructive focus-visible:ring-destructive"
-                            : ""
-                        }`}
-                        {...field}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setIsTypePassword(!isTypePassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                      >
-                        {isTypePassword ? <FaRegEyeSlash /> : <FaRegEye />}
-                      </button>
-                    </div>
-                  </FormControl>
-
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end">
-              <Link
-                href="/auth/forgot-password"
-                className="text-primary underline"
+            {/* Form */}
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(handleLoginSubmit)}
+                className="space-y-5"
               >
-                Forgot Password?
-              </Link>
-            </div>
+                {/* Email */}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="example@gmail.com"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {/* Button */}
-            <div className="mb-3">
-              <ButtonLoading
-                type="submit"
-                text="Login"
-                loading={loading}
-                className="w-full"
-              />
-            </div>
-            <div className="text-center">
-              <div className="flex justify-center items-center gap-3">
-                <p>Don't have account?</p>
-                <Link href={WEBSITE_REGISTER} className="text-primary underline">
-                  Create account!
-                </Link>
-              </div>
-            </div>
-          </form>
-        </Form>
+                {/* Password */}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field, fieldState }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={isTypePassword ? "password" : "text"}
+                            placeholder="••••••••"
+                            className={`pr-10 ${
+                              fieldState.error
+                                ? "border-destructive focus-visible:ring-destructive"
+                                : ""
+                            }`}
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsTypePassword(!isTypePassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          >
+                            {isTypePassword ? <FaRegEyeSlash /> : <FaRegEye />}
+                          </button>
+                        </div>
+                      </FormControl>
+
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-end">
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-primary underline"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+
+                {/* Button */}
+                <div className="mb-3">
+                  <ButtonLoading
+                    type="submit"
+                    text="Login"
+                    loading={loading}
+                    className="w-full"
+                  />
+                </div>
+                <div className="text-center">
+                  <div className="flex justify-center items-center gap-3">
+                    <p>Don't have account?</p>
+                    <Link
+                      href={WEBSITE_REGISTER}
+                      className="text-primary underline"
+                    >
+                      Create account!
+                    </Link>
+                  </div>
+                </div>
+              </form>
+            </Form>
+          </>
+        ) : (
+         
+         <OTPVerification email={otpEmail}  onSubmit={handleOTPVerification} loading={otpVerificationLoading}/>
+        )}
       </CardContent>
     </Card>
   );

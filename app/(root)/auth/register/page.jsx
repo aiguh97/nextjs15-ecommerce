@@ -22,6 +22,8 @@ import z from "zod";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { WEBSITE_LOGIN, WEBSITE_REGISTER } from "@/routes/WebsiteRoute";
 import axios from "axios";
+import { showToast } from "@/lib/showToast";
+import { register } from "next/dist/next-devtools/userspace/pages/pages-dev-overlay-setup";
 
 const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
@@ -50,9 +52,10 @@ const RegisterPage = () => {
         throw new Error(registerResponse.message || "Something went wrong");
       }
       form.reset();
+      showToast("success",registerResponse.message);
       throw new Error(registerResponse.message || "Something went wrong 2");
     } catch (error) {
-      alert(error.message || "Something went wrong");
+     showToast("error",error.message || "Something went wrong");
     }finally{
       setLoading(false);
     }
