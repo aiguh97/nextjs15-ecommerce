@@ -1,6 +1,7 @@
 import { ToastContainer } from "react-toastify";
 import "./globals.css";
 import { Assistant } from "next/font/google";
+import GlobalProvider from "@/components/Application/GlobalProvider";
 
 const assistant = Assistant({
   subsets: ["latin"],
@@ -17,8 +18,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${assistant.className} antialiased`}>
-        <ToastContainer/>
+       <GlobalProvider>
+         <ToastContainer/>
         {children}
+       </GlobalProvider>
       </body>
     </html>
   );

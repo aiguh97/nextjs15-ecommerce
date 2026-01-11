@@ -20,12 +20,19 @@ import { Input } from "@/components/ui/input";
 import ButtonLoading from "@/components/Application/ButtonLoading";
 import z from "zod";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
-import { WEBSITE_REGISTER } from "@/routes/WebsiteRoute";
+import { USER_DASHBOARD, WEBSITE_REGISTER, WEBSITE_RESET_PASSWORD } from "@/routes/WebsiteRoute";
 import axios from "axios";
 import { showToast } from "@/lib/showToast";
 import OTPVerification from "@/components/Application/OTPVerification";
+import { useDispatch } from "react-redux";
+import { login } from "@/store/reducers/authReducer";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ADMIN_DASHBOARD } from "@/routes/AdminPanelRoute";
 
 const LoginPage = () => {
+  const dispatch = useDispatch()
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [loading, setLoading] = useState(false);
   const [otpVerificationLoading, setOtpVerificationLoading] = useState(false);
   const [isTypePassword, setIsTypePassword] = useState(true);
@@ -46,44 +53,71 @@ const LoginPage = () => {
     },
   });
 
-  const handleLoginSubmit = async (values) => {
-    try {
-      setLoading(true);
+const handleLoginSubmit = async (values) => {
+  try {
+    setLoading(true);
 
-      const { data: registerResponse } = await axios.post(
-        "/api/auth/login",
-        values
-      );
+    const { data } = await axios.post("/api/auth/login", values);
 
-      if (!registerResponse.success) {
-        throw new Error(registerResponse.message || "Something went wrong");
-      }
-
-      setOTPEmail(values.email);
-      form.reset();
-      showToast("success", registerResponse.message);
-    } catch (error) {
-      showToast("error", error.message);
-    } finally {
-      setLoading(false);
+    if (!data.success) {
+      throw new Error(data.message || "Something went wrong");
     }
-  };
+
+    // 🔥 FIX PENTING: cek apakah butuh OTP
+    if (data.data?.requireOtp) {
+      setOTPEmail(values.email);
+    } else {
+      dispatch(login(data.data));
+
+      if (searchParams.has("callback")) {
+        router.push(searchParams.get("callback"));
+      } else {
+        data.data.role === "admin"
+          ? router.push(ADMIN_DASHBOARD)
+          : router.push(USER_DASHBOARD);
+      }
+    }
+
+    showToast("success", data.message);
+    form.reset();
+  } catch (error) {
+    showToast("error", error.message || "Login failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleOTPVerification = async (values) => {
   try {
       setOtpVerificationLoading(true);
 
-      const { data: registerResponse } = await axios.post(
+      const { data: otpResponse } = await axios.post(
         "/api/auth/verify-otp",
         values
       );
 
-      if (!registerResponse.success) {
-        throw new Error(registerResponse.message || "Something went wrong");
+      if (!otpResponse.success) {
+        throw new Error(otpResponse.message || "Something went wrong");
       }
 
-      setOTPEmail('');
-      showToast("success", registerResponse.message);
+    //  if (registerResponse.data?.requireOtp) {
+  setOTPEmail(values.email);
+// } else {
+//   dispatch(login(registerResponse.data));
+//   router.push(USER_DASHBOARD);
+// }
+
+
+      showToast("success", otpResponse.message);
+      dispatch(login(otpResponse.data))
+
+      if(searchParams.has('callback')){
+        router.push(searchParams.get('callback'))
+      }else{
+        otpResponse.data.role==='admin'?router.push(ADMIN_DASHBOARD):router.push(USER_DASHBOARD)
+      }
+
     } catch (error) {
       showToast("error", error.message);
     } finally {
@@ -177,7 +211,7 @@ const LoginPage = () => {
 
                 <div className="flex justify-end">
                   <Link
-                    href="/auth/forgot-password"
+                    href={WEBSITE_RESET_PASSWORD}
                     className="text-primary underline"
                   >
                     Forgot Password?

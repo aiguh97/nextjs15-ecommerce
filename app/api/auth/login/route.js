@@ -14,28 +14,39 @@ export async function POST(request) {
     await connectDB();
     const payload = await request.json();
 
+    // ===============================
+    // VALIDATION
+    // ===============================
     const validationSchema = authSchema.pick({ email: true }).extend({
       password: z.string(),
     });
 
-    const validatedData = validationSchema.safeParse(payload);
-    if (!validatedData.success) {
-      return response(false, 400, validatedData);
+    const validated = validationSchema.safeParse(payload);
+    if (!validated.success) {
+      return response(false, 400, validated.error);
     }
 
-    const { email, password } = validatedData.data;
+    const { email, password } = validated.data;
 
-    const getUser = await UserModel.findOne({ deletedAt: null, email }).select("+password");
+    // ===============================
+    // FIND USER
+    // ===============================
+    const user = await UserModel.findOne({
+      email,
+      deletedAt: null,
+    }).select("+password");
 
-    if (!getUser) {
+    if (!user) {
       return response(false, 404, "User not found");
     }
 
-    // Email belum diverifikasi
-    if (!getUser.isEmailVerified) {
+    // ===============================
+    // EMAIL VERIFICATION
+    // ===============================
+    if (!user.isEmailVerified) {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
 
-      const token = await new SignJWT({ userId: getUser._id.toString() })
+      const token = await new SignJWT({ userId: user._id.toString() })
         .setIssuedAt()
         .setExpirationTime("24h")
         .setProtectedHeader({ alg: "HS256" })
@@ -43,7 +54,7 @@ export async function POST(request) {
 
       await sendMail(
         email,
-        "Email Verification request from teguhdev",
+        "Email Verification",
         emailVerificationLink(
           `${process.env.NEXT_PUBLIC_BASE_URL}/auth/verify-email/${token}`
         )
@@ -52,33 +63,52 @@ export async function POST(request) {
       return response(
         false,
         401,
-        "Your email is not verified. Verification link has been resent."
+        "Email not verified. Verification link has been sent."
       );
     }
 
-    const isPasswordVerified = await getUser.comparePassword(password);
-    if (!isPasswordVerified) {
+    // ===============================
+    // PASSWORD CHECK
+    // ===============================
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
       return response(false, 401, "Invalid credentials");
     }
 
+    // ===============================
+    // JIKA OTP SUDAH VERIFIED → LANGSUNG LOGIN
+    // ===============================
+    if (user.isOtpVerified) {
+      return response(true, 200, "Login success", {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+      });
+    }
+
+    // ===============================
+    // JIKA BELUM OTP VERIFIED → KIRIM OTP
+    // ===============================
     await OtpModel.deleteMany({ email });
 
     const otp = generateOTP();
     await new OtpModel({ email, otp }).save();
 
-    const otpEmailStatus = await sendMail(
+    const otpSent = await sendMail(
       email,
-      "Your One-Time Password (OTP) for Login",
+      "Your Login OTP",
       otpEmail(otp)
     );
-   
 
-    if (!otpEmailStatus) {
+    if (!otpSent) {
       return response(false, 500, "Failed to send OTP");
     }
 
-    return response(true, 200, "Please verify your device");
+    return response(true, 200, "OTP sent to email", {
+      requireOtp: true,
+    });
+
   } catch (error) {
-    return catchError(error, "Gagal melakukan login user");
+    return catchError(error, "Login failed");
   }
 }
