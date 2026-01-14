@@ -31,21 +31,19 @@ export async function POST(request) {
     // ===============================
     // FIND USER
     // ===============================
-    const user = await UserModel.findOne({
-      email,
-      deletedAt: null,
-    }).select("+password");
+ const user = await UserModel.findOne({ email, deletedAt: null })
+  .select("+password +isEmailVerified +isOtpVerified");
+
 
     if (!user) {
       return response(false, 404, "User not found");
     }
 
     // ===============================
-    // EMAIL VERIFICATION
+    // EMAIL VERIFICATION CHECK
     // ===============================
     if (!user.isEmailVerified) {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
-
       const token = await new SignJWT({ userId: user._id.toString() })
         .setIssuedAt()
         .setExpirationTime("24h")
@@ -75,38 +73,31 @@ export async function POST(request) {
       return response(false, 401, "Invalid credentials");
     }
 
-    // ===============================
-    // JIKA OTP SUDAH VERIFIED → LANGSUNG LOGIN
-    // ===============================
-    if (user.isOtpVerified) {
-      return response(true, 200, "Login success", {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-      });
-    }
+  // Cek OTP
+// if (user.isOtpVerified) {
+  return response(true, 200, "Login success", {
+    id: user._id,
+    name:user.username,
+    email: user.email,
+    role: user.role,
+    requireOtp: false,
+  });
+// }
 
-    // ===============================
-    // JIKA BELUM OTP VERIFIED → KIRIM OTP
-    // ===============================
-    await OtpModel.deleteMany({ email });
+// Cek OTP yang ada
+let existingOtp = await OtpModel.findOne({ email });
 
-    const otp = generateOTP();
-    await new OtpModel({ email, otp }).save();
+if (!existingOtp) {
+  // OTP belum ada → generate baru
+  const otp = generateOTP();
+  existingOtp = await OtpModel.create({ email, otp });
+  await sendMail(email, "Your Login OTP", otpEmail(otp));
+}
 
-    const otpSent = await sendMail(
-      email,
-      "Your Login OTP",
-      otpEmail(otp)
-    );
+return response(true, 200, "OTP sent to email", {
+  requireOtp: true,
+});
 
-    if (!otpSent) {
-      return response(false, 500, "Failed to send OTP");
-    }
-
-    return response(true, 200, "OTP sent to email", {
-      requireOtp: true,
-    });
 
   } catch (error) {
     return catchError(error, "Login failed");

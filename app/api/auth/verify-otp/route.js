@@ -32,23 +32,29 @@ export async function POST(request) {
     }
 
     // ✅ CEK USER
-    const user = await UserModel.findOne({
-      email,
-      deletedAt: null,
-    }).lean();
+    // ✅ CEK USER
+const user = await UserModel.findOne({
+  email,
+  deletedAt: null,
+});
 
-    if (!user) {
-      return response(false, 404, "User not found");
-    }
+if (!user) {
+  return response(false, 404, "User not found");
+}
 
-    // ✅ JWT PAYLOAD
-    const jwtPayload = {
-      _id: user._id,
-      fullname: user.fullname,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-    };
+// ✅ TANDANGI USER SUDAH VERIFIED OTP
+user.isOtpVerified = true;
+await user.save();
+
+// ✅ JWT PAYLOAD
+const jwtPayload = {
+  _id: user._id,
+  fullname: user.fullname,
+  username: user.username,
+  email: user.email,
+  role: user.role,
+};
+
 
     const secret = new TextEncoder().encode(
       process.env.JWT_SECRET_KEY

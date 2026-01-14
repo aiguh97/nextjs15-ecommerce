@@ -1,10 +1,16 @@
+import { SidebarProvider } from '@/components/ui/sidebar'
 import React from 'react'
 
 const layout = ({children}) => {
   return (
-    <div>
+     <SidebarProvider>
+    <main>
+       
+
+     
       {children}
-    </div>
+    </main>
+       </SidebarProvider>
   )
 }
 

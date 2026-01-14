@@ -1,11 +1,32 @@
-import React from 'react'
+import AppSidebar from "@/components/Application/Admin/AppSidebar";
+import ThemeProvider from "@/components/Application/Admin/ThemeProvider";
+import Topbar from "@/components/Application/Admin/Topbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import React from "react";
 
-const layout = ({children}) => {
+const layout = ({ children }) => {
   return (
-    <div>
-      {children}
-    </div>
-  )
-}
+    <ThemeProvider
+    attribute="class"
+    defaultTheme="system"
+    enableSystem
+    disableTransistionOnChange
+    >
+      <SidebarProvider>
+        <AppSidebar />
+        <main className="md:w-[calc(100vw-16rem)]">
+          <div className="pt-[70px] px-8 min-h-[calc(100vh-40px)] pb-10">
+            <Topbar />
+            {children}
+          </div>
 
-export default layout
+          <div className="border-t h-[40x] flex justify-center items-center bg-gray-50 dark:bg-background text-sm">
+            @2024 Developer teguh All Right Reserved
+          </div>
+        </main>
+      </SidebarProvider>
+    </ThemeProvider>
+  );
+};
+
+export default layout;
