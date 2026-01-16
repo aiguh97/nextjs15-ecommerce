@@ -1,21 +1,29 @@
-'use client'
+"use client";
 
-import { persistor, store } from '@/store/store'
-import React from 'react'
-import { Provider } from 'react-redux'
+import { persistor, store } from "@/store/store";
+import React, { Suspense } from "react";
+import { Provider } from "react-redux";
 // import { PersistGate } from 'redux-persist/es/integration/react'
-import Loading from './Loading'
-import { PersistGate } from 'redux-persist/integration/react'
+import Loading from "./Loading";
+import { PersistGate } from "redux-persist/integration/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 // import { PersistGate } from 'redux-persist/es/integration/react'
+const queryClient = new QueryClient()
 
-const GlobalProvider = ({children}) => {
+const GlobalProvider = ({ children }) => {
   return (
-   <Provider store={store}>
-    <PersistGate persistor={persistor} loading={<Loading/>}>
-    {children}
-    </PersistGate>
-   </Provider>
-  )
-}
+    <QueryClientProvider client={queryClient}>
+      <Provider store={store}>
+        <PersistGate persistor={persistor} loading={<Loading />}>
+          {children}
+        </PersistGate>
+      </Provider>
+      <Suspense fallback={null}>
+        <ReactQueryDevtools></ReactQueryDevtools>
+      </Suspense>
+    </QueryClientProvider>
+  );
+};
 
-export default GlobalProvider
+export default GlobalProvider;

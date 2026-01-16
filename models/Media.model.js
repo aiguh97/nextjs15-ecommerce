@@ -16,7 +16,12 @@ const mediaSchema = new mongoose.Schema({
         required:true,
         trim:true
     },
-    thumbnail:{
+    thumbnail_url:{
+        type:String,
+        required:true,
+        trim:true
+    },
+       secure_url:{
         type:String,
         required:true,
         trim:true

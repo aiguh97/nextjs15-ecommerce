@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SignJWT } from "jose";
+import { cookies } from "next/headers"; // ✅ TAMBAHAN
 import { connectDB } from "@/lib/dbConnection";
 import { catchError, generateOTP, response } from "@/lib/helperFunction";
 import { authSchema } from "@/lib/zodSchema";
@@ -31,9 +32,8 @@ export async function POST(request) {
     // ===============================
     // FIND USER
     // ===============================
- const user = await UserModel.findOne({ email, deletedAt: null })
-  .select("+password +isEmailVerified +isOtpVerified");
-
+    const user = await UserModel.findOne({ email, deletedAt: null })
+      .select("+password +isEmailVerified +isOtpVerified");
 
     if (!user) {
       return response(false, 404, "User not found");
@@ -73,32 +73,54 @@ export async function POST(request) {
       return response(false, 401, "Invalid credentials");
     }
 
-  // Cek OTP
-// if (user.isOtpVerified) {
-  return response(true, 200, "Login success", {
-    id: user._id,
-    name:user.username,
-    email: user.email,
-    role: user.role,
-    requireOtp: false,
-  });
-// }
+    // ===============================
+    // OTP CHECK
+    // ===============================
+    if (!user.isOtpVerified) {
+      // Cek OTP yang ada
+      let existingOtp = await OtpModel.findOne({ email });
 
-// Cek OTP yang ada
-let existingOtp = await OtpModel.findOne({ email });
+      if (!existingOtp) {
+        // OTP belum ada → generate baru
+        const otp = generateOTP();
+        await OtpModel.create({ email, otp });
+        await sendMail(email, "Your Login OTP", otpEmail(otp));
+      }
 
-if (!existingOtp) {
-  // OTP belum ada → generate baru
-  const otp = generateOTP();
-  existingOtp = await OtpModel.create({ email, otp });
-  await sendMail(email, "Your Login OTP", otpEmail(otp));
-}
+      return response(true, 200, "OTP sent to email", {
+        requireOtp: true,
+      });
+    }
 
-return response(true, 200, "OTP sent to email", {
-  requireOtp: true,
-});
+    // ===============================
+    // CREATE JWT + SET COOKIE
+    // ===============================
+    const token = await new SignJWT({
+      _id: user._id.toString(),
+      role: user.role,
+    })
+      .setIssuedAt()
+      .setExpirationTime("7d")
+      .setProtectedHeader({ alg: "HS256" })
+      .sign(new TextEncoder().encode(process.env.JWT_SECRET_KEY));
 
+    // ✅ INI YANG SEBELUMNYA HILANG
+    cookies().set({
+      name: "access_token",
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/", // 🔥 WAJIB
+    });
 
+    return response(true, 200, "Login success", {
+      id: user._id,
+      name: user.username,
+      email: user.email,
+      role: user.role,
+      requireOtp: false,
+    });
   } catch (error) {
     return catchError(error, "Login failed");
   }
